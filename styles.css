@@ -164,7 +164,7 @@ body {
 }
 
 .hero {
-  max-width: 1121px;
+  width: min(1233px, calc(100vw - 48px));
   margin: 0 auto;
   text-align: center;
 }
@@ -315,7 +315,8 @@ body {
 }
 
 .hero-composite {
-  width: min(100%, 1121px);
+  width: 100%;
+  max-width: 1233px;
   border-radius: 0;
   overflow: visible;
   box-shadow: none;
@@ -599,8 +600,12 @@ body {
 }
 
 .media-retain img {
-  transform: scale(1.44);
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  transform: scale(1.2);
   transform-origin: center;
+  object-position: center center;
 }
 
 .outcomes {
@@ -630,10 +635,13 @@ body {
 }
 
 .outcome-card {
-  min-height: 380px;
+  min-height: 0;
   border-radius: 16px;
   background: #fff;
   padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .outcome-icon {
@@ -691,7 +699,7 @@ body {
 }
 
 .kpi {
-  margin: 10px 0;
+  margin: 0;
   font-size: 30px;
   font-weight: 700;
   line-height: 36px;
@@ -719,6 +727,7 @@ body {
 }
 
 .outcome-card p:not(.kpi) {
+  margin: 0;
   font-size: 16px;
   font-weight: 400;
   line-height: 26px;
@@ -1029,6 +1038,11 @@ body {
     max-width: 100%;
   }
 
+  .outcome-card {
+    min-height: auto;
+    padding: 22px;
+  }
+
   .compare-card {
     min-height: auto;
   }
@@ -1099,7 +1113,21 @@ body {
     line-height: 28px;
   }
 
+  .outcome-card h3 {
+    font-size: 22px;
+    line-height: 30px;
+  }
+
+  .kpi {
+    margin: 8px 0;
+  }
+
+  .outcome-card p:not(.kpi) {
+    margin-bottom: 0;
+  }
+
   .site-footer {
+    display: none;
     background-position: right;
   }
 }
