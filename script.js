@@ -221,6 +221,7 @@ document.querySelectorAll(".flip-word[data-words]").forEach(
   const emailInput = form.querySelector("#email, #cta-email, input[name='email']");
   const mobileInput = form.querySelector("#mobile, input[name='mobile'], input[name='phone']");
   const countrySelect = form.querySelector("select[name='country']");
+  const phonePrefix = form.querySelector(".cta-phone-prefix");
   const consentInput = form.querySelector("input[name='consent']");
   const submitButton = form.querySelector("button[type='submit']");
   const submitButtonLabel = submitButton ? submitButton.querySelector(".btn-label") : null;
@@ -234,6 +235,8 @@ document.querySelectorAll(".flip-word[data-words]").forEach(
   const PHONE_LIB_URL = "https://cdn.jsdelivr.net/npm/libphonenumber-js@1.11.13/bundle/libphonenumber-max.js";
   const COUNTRIES_API_URL = "https://restcountries.com/v3.1/all?fields=name,cca2,idd";
   const GEO_API_URL = "https://ipapi.co/json/";
+  const GEO_FALLBACK_API_URL = "https://ipwho.is/";
+  const COUNTRY_CACHE_KEY = "zepic-country-iso2";
   const buttonLabel = submitButtonLabel ? submitButtonLabel.textContent : submitButton.textContent;
 
   const feedback = document.createElement("p");
@@ -402,23 +405,60 @@ document.querySelectorAll(".flip-word[data-words]").forEach(
     return countries.find((country) => country.iso2 === countryIso) || null;
   };
 
+  const getCachedCountry = () => {
+    try {
+      return String(window.localStorage.getItem(COUNTRY_CACHE_KEY) || "").toUpperCase();
+    } catch (_error) {
+      return "";
+    }
+  };
+
   const setActiveCountry = (country) => {
     activeCountry = country || fallbackCountry;
 
     if (countrySelect) {
       countrySelect.value = activeCountry.iso2;
     }
+
+    if (phonePrefix) {
+      phonePrefix.textContent = activeCountry.dialCode;
+    }
+
+    try {
+      window.localStorage.setItem(COUNTRY_CACHE_KEY, activeCountry.iso2);
+    } catch (_error) {
+      // Ignore storage failures in restricted browser contexts.
+    }
   };
 
   const detectCountryByIp = async () => {
-    try {
-      const response = await fetchWithTimeout(GEO_API_URL, 5000);
-      if (!response.ok) return "";
-      const data = await response.json();
-      return String(data?.country_code || "").toUpperCase();
-    } catch (_error) {
-      return "";
+    const geoEndpoints = [
+      {
+        url: GEO_API_URL,
+        getIso2: (data) => data?.country_code,
+      },
+      {
+        url: GEO_FALLBACK_API_URL,
+        getIso2: (data) => data?.country_code,
+      },
+    ];
+
+    for (const endpoint of geoEndpoints) {
+      try {
+        const response = await fetchWithTimeout(endpoint.url, 5000);
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        const iso2 = String(endpoint.getIso2(data) || "").toUpperCase();
+        if (iso2.length === 2) {
+          return iso2;
+        }
+      } catch (_error) {
+        // Try the next provider.
+      }
     }
+
+    return getCachedCountry();
   };
 
   const loadCountries = async () => {
@@ -447,9 +487,12 @@ document.querySelectorAll(".flip-word[data-words]").forEach(
       populateCountryDropdown(countries);
     }
 
+    setActiveCountry(fallbackCountry);
+
     const ipCountry = await detectCountryByIp();
+    const cachedCountry = getCachedCountry();
     const localeCountry = getLocaleCountry();
-    const defaultCountry = findCountryByIso(ipCountry) || findCountryByIso(localeCountry) || fallbackCountry;
+    const defaultCountry = findCountryByIso(ipCountry) || findCountryByIso(cachedCountry) || findCountryByIso(localeCountry) || fallbackCountry;
     setActiveCountry(defaultCountry);
   };
 
